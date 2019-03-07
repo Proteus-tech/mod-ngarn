@@ -93,6 +93,7 @@ async def test_job_failed_record_to_db():
     assert job_db["priority"] == 1
     assert job_db["reason"] == "KeyError()"
 
+    job = Job(cnx, queue_table, "job-2", "tests.test_job.raise_dummy_job", 1)
     await job.execute()
     job_db = await cnx.fetchrow(f'SELECT * FROM "{queue_table}" WHERE id=$1', "job-2")
     assert job_db["result"] == None
@@ -104,7 +105,7 @@ async def test_job_failed_record_to_db():
 
 @freezegun.freeze_time("2018-01-01T12:00:00+00:00")
 @pytest.mark.asyncio
-async def test_job_failed_exponential_delay_job_based_on_priority():
+async def test_job_failed_exponential_delay_job_based_on_priority_and_max_priority_equal_30():
     await create_table()
     cnx = await get_connection()
     queue_table = os.getenv("DBTABLE", "modngarn_job")
@@ -142,6 +143,18 @@ async def test_job_failed_exponential_delay_job_based_on_priority():
     await job.execute()
     job_db = await cnx.fetchrow(f'SELECT * FROM "{queue_table}" WHERE id=$1', "job-2")
     assert job_db["scheduled"].isoformat() == "2018-01-01T12:17:04+00:00"
+
+    # 29th failed, priority should be 30
+    job.priority = 29
+    await job.execute()
+    job_db = await cnx.fetchrow(f'SELECT * FROM "{queue_table}" WHERE id=$1', "job-2")
+    assert job_db["priority"] == 30
+
+    # 30th failed, priority should be 30
+    job.priority = 30
+    await job.execute()
+    job_db = await cnx.fetchrow(f'SELECT * FROM "{queue_table}" WHERE id=$1', "job-2")
+    assert job_db["priority"] == 30
 
     await cnx.execute(f'TRUNCATE TABLE "{queue_table}";')
     await cnx.close()

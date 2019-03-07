@@ -1,3 +1,6 @@
+2019-07-03  Tle Ekkul  <e.aryuth@gmail.com>
+ Set: mod-ngarn max priority for prevent max int problem
+
 2019-01-18  Tle Ekkul  <e.aryuth@gmail.com>
  Added: mod-ngarn --limit
 

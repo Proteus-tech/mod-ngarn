@@ -65,15 +65,18 @@ class Job:
     async def failed(self, error: str) -> str:
         """ Failed execution handler """
         delay = 2 ** self.priority
+        next_priority = 30 if self.priority >= 30 else self.priority + 1
+        # max int = ( 2 ** 31 ) - 1
         next_schedule = datetime.now(timezone.utc) + timedelta(seconds=delay)
         log.error(
             "Rescheduled, delay for {} seconds ({}) ".format(delay, next_schedule.isoformat())
         )
         return await self.cnx.execute(
-            f'UPDATE "{self.table}" SET priority=priority+1, reason=$2, scheduled=$3  WHERE id=$1',
+            f'UPDATE "{self.table}" SET priority=$4, reason=$2, scheduled=$3  WHERE id=$1',
             self.id,
             error,
             next_schedule,
+            next_priority
         )
 
 
